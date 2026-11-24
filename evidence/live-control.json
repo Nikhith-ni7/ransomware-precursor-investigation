@@ -1,0 +1,10 @@
+{
+  "exit_code": 0,
+  "channel": "Microsoft-Windows-Sysmon/Operational",
+  "utc": "2026-11-24T22:06:08.6485459Z",
+  "source": "live UTM Windows",
+  "record_id": 840,
+  "event_id": 1,
+  "operation": "list writers",
+  "image": "vssadmin.exe"
+}

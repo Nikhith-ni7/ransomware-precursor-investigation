@@ -1,0 +1,38 @@
+[
+  {
+    "utc": "2026-11-24T09:00:26Z",
+    "host": "dc01.lab.example",
+    "finding": "Service-ticket burst",
+    "records": [
+      103,
+      104,
+      105,
+      106
+    ]
+  },
+  {
+    "utc": "2026-11-24T09:03:04Z",
+    "host": "ca01.lab.example",
+    "finding": "ESC1-like certificate issuance",
+    "records": [
+      202,
+      203
+    ]
+  },
+  {
+    "utc": "2026-11-24T09:05:00Z",
+    "host": "ws01.lab.example",
+    "finding": "Shadow-copy deletion attempt",
+    "records": [
+      302
+    ]
+  },
+  {
+    "utc": "2026-11-24T09:05:21Z",
+    "host": "ws01.lab.example",
+    "finding": "Backup catalog deletion attempt",
+    "records": [
+      303
+    ]
+  }
+]

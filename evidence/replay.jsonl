@@ -1,0 +1,13 @@
+{"utc": "2026-11-24T09:00:00Z", "host": "dc01.lab.example", "record": 101, "event": 4769, "account": "inventory", "ip": "192.0.2.90", "service": "files", "cipher": "AES", "status": "success"}
+{"utc": "2026-11-24T09:00:01Z", "host": "dc01.lab.example", "record": 102, "event": 4769, "account": "inventory", "ip": "192.0.2.90", "service": "files", "cipher": "AES", "status": "success"}
+{"utc": "2026-11-24T09:00:03Z", "host": "dc01.lab.example", "record": 103, "event": 4769, "account": "alex", "ip": "192.0.2.40", "service": "reports", "cipher": "RC4", "status": "success"}
+{"utc": "2026-11-24T09:00:11Z", "host": "dc01.lab.example", "record": 104, "event": 4769, "account": "alex", "ip": "192.0.2.40", "service": "billing", "cipher": "RC4", "status": "success"}
+{"utc": "2026-11-24T09:00:17Z", "host": "dc01.lab.example", "record": 105, "event": 4769, "account": "alex", "ip": "192.0.2.40", "service": "files", "cipher": "RC4", "status": "success"}
+{"utc": "2026-11-24T09:00:26Z", "host": "dc01.lab.example", "record": 106, "event": 4769, "account": "alex", "ip": "192.0.2.40", "service": "app", "cipher": "RC4", "status": "success"}
+{"utc": "2026-11-24T09:01:00Z", "host": "ca01.lab.example", "record": 200, "event": 4886, "request_id": 17, "template": "StandardUser", "account": "jo"}
+{"utc": "2026-11-24T09:01:04Z", "host": "ca01.lab.example", "record": 201, "event": 4887, "request_id": 17, "template": "StandardUser", "issued_identity": "jo"}
+{"utc": "2026-11-24T09:03:00Z", "host": "ca01.lab.example", "record": 202, "event": 4886, "request_id": 18, "template": "LegacyAuth", "account": "alex"}
+{"utc": "2026-11-24T09:03:04Z", "host": "ca01.lab.example", "record": 203, "event": 4887, "request_id": 18, "template": "LegacyAuth", "issued_identity": "lab-admin"}
+{"utc": "2026-11-24T09:04:00Z", "host": "ws01.lab.example", "record": 301, "event": 1, "image": "vssadmin.exe", "operation": "list writers"}
+{"utc": "2026-11-24T09:05:00Z", "host": "ws01.lab.example", "record": 302, "event": 1, "image": "vssadmin.exe", "operation": "delete shadows"}
+{"utc": "2026-11-24T09:05:21Z", "host": "ws01.lab.example", "record": 303, "event": 1, "image": "wbadmin.exe", "operation": "delete catalog"}

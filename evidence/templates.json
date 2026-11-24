@@ -1,0 +1,14 @@
+{
+  "LegacyAuth": {
+    "broad_enrollment": true,
+    "requester_supplies_subject": true,
+    "authentication_eku": true,
+    "no_approval_or_signatures": true
+  },
+  "StandardUser": {
+    "broad_enrollment": true,
+    "requester_supplies_subject": false,
+    "authentication_eku": true,
+    "no_approval_or_signatures": true
+  }
+}

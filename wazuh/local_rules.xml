@@ -1,0 +1,66 @@
+<!--
+  Custom Wazuh rules for the ransomware precursor lab.
+  Install on the manager: append to /var/ossec/etc/rules/local_rules.xml, then
+  restart the manager. Test each rule with /var/ossec/bin/wazuh-logtest first.
+  Field names follow the Wazuh Windows eventchannel decoder (win.system.*, win.eventdata.*).
+-->
+<group name="windows,ransomware_precursor,">
+
+  <!-- Recovery inhibition (Sysmon event 1) -->
+  <rule id="100110" level="12">
+    <decoded_as>windows_eventchannel</decoded_as>
+    <field name="win.system.channel">^Microsoft-Windows-Sysmon/Operational$</field>
+    <field name="win.system.eventID">^1$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)vssadmin(\.exe)?\W.*\b(delete\s+shadows|resize\s+shadowstorage)</field>
+    <description>Attempt to delete or resize shadow copies with vssadmin on $(win.system.computer) by $(win.eventdata.user)</description>
+    <mitre><id>T1490</id></mitre>
+  </rule>
+
+  <rule id="100111" level="12">
+    <decoded_as>windows_eventchannel</decoded_as>
+    <field name="win.system.channel">^Microsoft-Windows-Sysmon/Operational$</field>
+    <field name="win.system.eventID">^1$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(wmic(\.exe)?\W.*\bshadowcopy\b.*\bdelete|win32_shadowcopy.*(\.delete\(|remove-ciminstance|remove-wmiobject))</field>
+    <description>Attempt to delete shadow copies with WMI on $(win.system.computer) by $(win.eventdata.user)</description>
+    <mitre><id>T1490</id></mitre>
+  </rule>
+
+  <rule id="100112" level="12">
+    <decoded_as>windows_eventchannel</decoded_as>
+    <field name="win.system.channel">^Microsoft-Windows-Sysmon/Operational$</field>
+    <field name="win.system.eventID">^1$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(wbadmin(\.exe)?\W.*\bdelete\s+(catalog|systemstatebackup|backup)|bcdedit(\.exe)?\W.*(recoveryenabled\s+no|bootstatuspolicy\s+ignoreallfailures))</field>
+    <description>Attempt to delete backups or disable recovery on $(win.system.computer) by $(win.eventdata.user)</description>
+    <mitre><id>T1490</id></mitre>
+  </rule>
+
+  <!-- Kerberoasting (Security event 4769, collected from a domain controller) -->
+  <rule id="100120" level="3">
+    <decoded_as>windows_eventchannel</decoded_as>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.status">^0x0$</field>
+    <field name="win.eventdata.serviceName" negate="yes" type="pcre2">(\$$|^krbtgt$)</field>
+    <field name="win.eventdata.targetUserName" negate="yes" type="pcre2">\$@</field>
+    <description>Service ticket issued for a user service account</description>
+    <options>no_full_log</options>
+  </rule>
+
+  <rule id="100121" level="12" frequency="4" timeframe="300">
+    <if_matched_sid>100120</if_matched_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <different_field>win.eventdata.serviceName</different_field>
+    <description>Possible Kerberoasting: $(win.eventdata.targetUserName) requested tickets for several service accounts in 5 minutes</description>
+    <mitre><id>T1558.003</id></mitre>
+  </rule>
+
+  <!-- Certificate issuance from a template flagged as risky in the lab inventory -->
+  <rule id="100130" level="10">
+    <decoded_as>windows_eventchannel</decoded_as>
+    <field name="win.system.eventID">^4887$</field>
+    <field name="win.eventdata.attributes" type="pcre2">(?i)CertificateTemplate:\s*LegacyAuth\b</field>
+    <description>Certificate issued from risky template LegacyAuth to $(win.eventdata.requester); check the issued identity</description>
+    <mitre><id>T1649</id></mitre>
+  </rule>
+
+</group>

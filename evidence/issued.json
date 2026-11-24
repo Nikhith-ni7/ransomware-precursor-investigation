@@ -1,0 +1,5 @@
+{
+  "_note": "Identities decoded from issued certificates (certutil -view, then certutil -dump on the certificate). Synthetic exercise values.",
+  "ca01.lab.example/18": "lab-admin",
+  "ca01.lab.example/17": "jo"
+}

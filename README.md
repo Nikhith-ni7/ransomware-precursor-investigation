@@ -1,21 +1,93 @@
-# Ransomware precursor investigation in Active Directory
+# Ransomware precursor investigation
 
-Investigate a fictional service-ticket burst, certificate issuance, and two attempts to impair recovery. A separate live Windows endpoint check supplies a benign comparison. The project runs locally with Python 3.10+ and uses the existing UTM Windows, Sysmon, and Wazuh lab. Azure resources and a live AD forest are outside this edition.
+Detects and links three steps that often come before ransomware, from Windows event logs:
+Kerberoasting, certificate abuse through a misconfigured AD CS template (ESC1), and deletion
+of shadow copies and backups. The output is a set of findings plus an analyst hypothesis that
+links them, written up as a full [incident report](IR-report.md).
 
-## Reproduce the findings
+Runs on macOS with Python 3.10+ (standard library only). Endpoint telemetry comes from a
+Windows 11 VM in UTM with Sysmon and the Wazuh agent.
 
-From this folder run:
+## What is real and what is synthetic
 
-```sh
-python3 investigate.py
-python3 -m unittest discover -v
+| Stage | Data | Status |
+| --- | --- | --- |
+| Kerberoasting (4769) | Synthetic exercise in real Windows field format | Real DC telemetry pending, see [docs/LAB.md](docs/LAB.md) |
+| AD CS ESC1 (4886/4887) | Synthetic exercise in real Windows field format | Real CA telemetry pending |
+| Shadow copy / backup deletion (Sysmon 1) | Synthetic exercise; one real benign control from the UTM VM | Deletion detections verified against recorded exercise events |
+| Wazuh alerting | Custom rules in [wazuh/local_rules.xml](wazuh/local_rules.xml) | Not yet loaded on the manager |
+
+The local lab uses recorded domain and CA evidence. See [the lab guide](docs/LAB.md).
+
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph Sources
+        DC["Domain controllers<br/>Security 4769"]
+        CA["Certificate authority<br/>Security 4886 / 4887"]
+        WS["Windows 11 (UTM)<br/>Sysmon event 1"]
+    end
+    WS --> WZ["Wazuh manager<br/>custom rules 1001xx"]
+    DC --> IN
+    CA --> IN
+    WZ -->|alerts.json| IN
+    WS -->|Get-WinEvent export| IN
+    IN["adapters.py<br/>Wazuh or flat Windows JSON"] --> D
+    T["Template inventory<br/>+ issued identities"] --> D
+    subgraph D["investigate.py"]
+        K["Kerberoasting<br/>across DCs"]
+        C["ESC1<br/>template + identity"]
+        R["Recovery inhibition<br/>command lines"]
+    end
+    D --> L["Link stages by account<br/>(hypothesis)"]
+    L --> IR["IR report"]
 ```
 
-The first command reads 13 projected records and a mock certificate-template inventory and prints four findings. Compare the UTC times and record IDs with [saved findings](evidence/findings.json) and the [incident report](IR-report.md). The second command checks detections and negative controls.
+## Detections
 
-## Evidence model
+| Detection | Logic | ATT&CK | Severity |
+| --- | --- | --- | --- |
+| Kerberoasting-like burst | One requester and source IP gets successful tickets for 4+ distinct user service accounts in 5 min, combined across all DCs. Machine accounts (`$`) and `krbtgt` excluded. | T1558.003 | High with RC4 tickets, Medium if AES only |
+| ESC1-like issuance | 4887 from a template with broad enrollment, requester-supplied subject, an authentication EKU and no approval, where the issued identity differs from the requester | T1649 | High |
+| Risky template issuance | Same template, issued identity not yet verified | T1649 | Medium |
+| Recovery inhibition | Command lines for `vssadmin delete shadows` / `resize shadowstorage`, `wmic shadowcopy delete`, PowerShell `Win32_ShadowCopy` delete, `wbadmin delete catalog/systemstatebackup/backup`, `bcdedit recoveryenabled no` | T1490 | High |
 
-- The replay uses normalized exercise fields. A production adapter would extract requester, service, encryption type, and source address from DC Security event 4769. The service-ticket alert requires successful RC4 requests for four distinct services within five minutes from one requester and address observed on the same DC. Splitting traffic across DCs or using AES can defeat this particular heuristic.
-- Certificate correlation joins 4886 and 4887 by issuing CA and request ID, then checks the template inventory and identity mismatch. The exercise supplies the issued identity as an enriched field. A real investigation must obtain the certificate or CA database record, validate SAN/UPN identities and aliases, inspect effective enrollment rights and issuance controls, and establish the template settings at issuance time. [Microsoft CA auditing](https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/secure-delegate-audit-certification-authority)
-- The endpoint replay uses Sysmon process creation with normalized operation labels. The Python rules distinguish two deletion attempts from a read-only writer query. These are offline detections over projected records. Deployment into the Wazuh rules engine and coverage of alternate utilities require separate validation.
-- [Live control](evidence/live-control.json) contains redacted endpoint metadata. The Windows agent was active on the local Wazuh manager. A bounded search of the latest 1,800 manager alerts found no matching alert for the control record. The original Windows event was verified directly in Sysmon.
+**Linking:** findings from different stages that share an account (the ticket requester, the
+certificate requester or issued identity, or the process user) within 2 hours are grouped as an
+*unconfirmed* same-actor hypothesis, with the evidence needed to confirm it.
+
+**Known limits:**
+- The Kerberoasting rule can be evaded with slow requests (more than 5 minutes apart), requests
+  from many source IPs, or targeting fewer than 4 services.
+- A 4887 event does not contain the identity in the certificate's SAN. The issued identity comes
+  from decoding the certificate (`certutil -view`, then `certutil -dump`), recorded in
+  [evidence/issued.json](evidence/issued.json). The detector reports `san:upn=` as the requested identity pending certificate verification.
+- Process starts show intent, not impact. Backup console logs and a restore test show loss.
+
+## Run it
+
+```sh
+python3 investigate.py                                  # synthetic exercise
+python3 investigate.py evidence/lab-endpoint.jsonl      # your VM export
+python3 investigate.py /path/to/alerts.json             # Wazuh manager alerts
+python3 -m unittest -v
+```
+
+Input is auto-detected per line: Wazuh `alerts.json` rows, Get-WinEvent JSON exports, or
+public recorded datasets with flat Windows fields (for example OTRF Security-Datasets).
+Lines that can't be parsed are counted and skipped.
+
+The [saved findings](evidence/findings.json) are what the synthetic exercise produces; a test
+checks they reproduce, including with duplicated and reordered events.
+
+## Layout
+
+```
+investigate.py      detections and stage linking
+adapters.py         Wazuh / flat Windows JSON -> normalized events
+evidence/           exercise events, template inventory, issued identities, saved findings, live control
+wazuh/              custom Wazuh rules
+docs/LAB.md         collecting real telemetry on an Apple Silicon Mac
+IR-report.md        incident report for the exercise
+```

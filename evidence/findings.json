@@ -1,38 +1,87 @@
-[
-  {
-    "utc": "2026-11-24T09:00:26Z",
-    "host": "dc01.lab.example",
-    "finding": "Service-ticket burst",
-    "records": [
-      103,
-      104,
-      105,
-      106
-    ]
-  },
-  {
-    "utc": "2026-11-24T09:03:04Z",
-    "host": "ca01.lab.example",
-    "finding": "ESC1-like certificate issuance",
-    "records": [
-      202,
-      203
-    ]
-  },
-  {
-    "utc": "2026-11-24T09:05:00Z",
-    "host": "ws01.lab.example",
-    "finding": "Shadow-copy deletion attempt",
-    "records": [
-      302
-    ]
-  },
-  {
-    "utc": "2026-11-24T09:05:21Z",
-    "host": "ws01.lab.example",
-    "finding": "Backup catalog deletion attempt",
-    "records": [
-      303
-    ]
-  }
-]
+{
+  "findings": [
+    {
+      "utc": "2026-11-24T09:00:26Z",
+      "host": "dc02.lab.example",
+      "finding": "Kerberoasting-like service ticket burst",
+      "stage": "credential_access",
+      "severity": "high",
+      "account": "alex",
+      "detail": "4 services in 23 s from 192.0.2.40 via 2 DC(s); RC4 tickets requested",
+      "records": [
+        103,
+        501,
+        105,
+        502
+      ],
+      "ip": "192.0.2.40"
+    },
+    {
+      "utc": "2026-11-24T09:03:04Z",
+      "host": "ca01.lab.example",
+      "finding": "ESC1-like certificate issuance",
+      "stage": "privilege_escalation",
+      "severity": "high",
+      "account": "alex",
+      "detail": "template LegacyAuth issued a certificate for lab-admin",
+      "records": [
+        202,
+        203
+      ],
+      "issued_identity": "lab-admin"
+    },
+    {
+      "utc": "2026-11-24T09:05:00Z",
+      "host": "ws01.lab.example",
+      "finding": "Shadow-copy deletion attempt",
+      "stage": "impact",
+      "severity": "high",
+      "account": "lab-admin",
+      "detail": "vssadmin.exe",
+      "records": [
+        302
+      ]
+    },
+    {
+      "utc": "2026-11-24T09:05:10Z",
+      "host": "ws01.lab.example",
+      "finding": "Shadow-copy deletion (WMIC) attempt",
+      "stage": "impact",
+      "severity": "high",
+      "account": "lab-admin",
+      "detail": "wmic.exe",
+      "records": [
+        304
+      ]
+    },
+    {
+      "utc": "2026-11-24T09:05:21Z",
+      "host": "ws01.lab.example",
+      "finding": "Backup catalog deletion attempt",
+      "stage": "impact",
+      "severity": "high",
+      "account": "lab-admin",
+      "detail": "wbadmin.exe",
+      "records": [
+        303
+      ]
+    }
+  ],
+  "linked": [
+    {
+      "hypothesis": "Same actor across stages (unconfirmed)",
+      "linked_by": [
+        "alex",
+        "lab-admin"
+      ],
+      "stages": [
+        "2026-11-24T09:00:26Z dc02.lab.example: Kerberoasting-like service ticket burst",
+        "2026-11-24T09:03:04Z ca01.lab.example: ESC1-like certificate issuance",
+        "2026-11-24T09:05:00Z ws01.lab.example: Shadow-copy deletion attempt",
+        "2026-11-24T09:05:10Z ws01.lab.example: Shadow-copy deletion (WMIC) attempt",
+        "2026-11-24T09:05:21Z ws01.lab.example: Backup catalog deletion attempt"
+      ],
+      "to_confirm": "Join logon sessions (4624 logon ID to Sysmon LogonId) and certificate authentication (4768 with certificate) before treating this as one intrusion."
+    }
+  ]
+}
